@@ -1,0 +1,1551 @@
+
+<html lang="en">
+<head>
+  <!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+
+<script>
+  // 1. Firebase Setup
+  const firebaseConfig = {
+    apiKey: "AIzaSyAZxIBtWdhnyT9qrFkkyPyX6TwgFYeYK0",
+    authDomain: "lewokdashboard.firebaseapp.com",
+    projectId: "lewokdashboard",
+    storageBucket: "lewokdashboard.appspot.com",
+    messagingSenderId: "326283554039",
+    appId: "1:326283554039:web:84804ce68ed322876677f2"
+  };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const messaging = firebase.messaging();
+
+  // 2. Service Worker Register
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('https://lewokchembur-cloud.github.io/lewok-push/firebase-messaging-sw.js')
+      .catch((err) => console.log('SW registration failed:', err));
+  }
+
+  // 3. Button Click Function
+  async function checkClick() {
+    try {
+      alert("Step 1: Permission mang rahe hain...");
+      
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        alert("Step 2: Permission mil gayi! Token generate ho raha hai...");
+        
+        const token = await messaging.getToken({ 
+          vapidKey: 'BORkqpQI200CAz_fd8H7i4NW64rkzHrF7_uNCwp1KRNbM7qXGtkPO-QqwubJjx7xEzqbjaFZyE90-fsq1XCNhI0',
+          serviceWorkerRegistration: await navigator.serviceWorker.ready
+        });
+        
+        if (token) {
+          alert("Step 3: Token mil gaya! Ab Google Sheet me bhej rahe hain...");
+          console.log("Device Token:", token);
+          sendTokenToServer(token);
+        } else {
+          alert("Token khali (empty) aaya!");
+        }
+      } else {
+        alert("Aapne notification permission deny kar di!");
+      }
+    } catch (err) {
+      alert("Error aa gaya: " + err.message);
+      console.error(err);
+    }
+  }
+
+  // 4. Send to Google Sheet
+  function sendTokenToServer(token) {
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw3CEHz01M2Vw5S9bxGTq0RAyj7D7DX7WiHNzhYsPJG5ySsPFdCfo75UraNYvwUkr29-w/exec"; 
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'SAVE_TOKEN', token: token }),
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    })
+    .then(response => response.text())
+    .then(result => {
+      alert("Success! Google Sheet me save ho gaya.");
+      console.log("Server Response:", result);
+    })
+    .catch(error => {
+      alert("Server par bhejne me error aaya: " + error);
+    });
+  }
+</script>
+<meta charset="UTF-8"></meta>
+<meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" name="viewport"></meta>
+<title>Le Wok Restaurant Control</title>
+<script>
+    // 1. Background Notification & Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+            if (Notification.permission !== 'granted') {
+                Notification.requestPermission();
+            }
+        }).catch(err => console.log("SW error:", err));
+    }
+</script>
+<style>
+/* ======================================================
+   LE WOK - ULTRA PRO RESPONSIVE DASHBOARD CSS
+   ====================================================== */
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+}
+html,body{
+  width:100%;
+  height:100%;
+  min-height:100%;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#0d0d0f;
+  color:#f3f4f6;
+  -webkit-tap-highlight-color:transparent;
+  overflow:hidden;
+}
+button,input{
+  font:inherit;
+}
+button{
+  border:0;
+  cursor:pointer;
+}
+button:disabled{
+  cursor:not-allowed;
+}
+
+/* ROOT APP */
+#app{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  background:#0d0d0f;
+  overflow:hidden;
+}
+
+/* TOPBAR */
+.topbar{
+  flex:0 0 72px;
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 max(18px, calc((100vw - 1550px)/2 + 20px));
+  background:linear-gradient(135deg, #141416 0%, #1f1f23 55%, #111113 100%);
+  border-bottom:1px solid #26262a;
+  color:#fff;
+  box-shadow:0 10px 30px rgba(0,0,0,.4);
+  z-index:1000;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-width:0;
+}
+.logo{
+  width:46px;
+  height:46px;
+  flex:0 0 46px;
+  display:grid;
+  place-items:center;
+  border-radius:14px;
+  font-size:22px;
+  background:linear-gradient(135deg,#ff7b00,#ff3c00);
+  box-shadow:0 8px 25px rgba(255,90,0,.4);
+}
+.brandText min-width:0{
+  min-width:0;
+}
+.brandText strong{
+  display:block;
+  font-size:18px;
+  letter-spacing:5px;
+  color:#fff;
+}
+.brandText span{
+  display:block;
+  margin-top:2px;
+  font-size:10px;
+  color:#ff9f43;
+  letter-spacing:1.5px;
+  font-weight:700;
+}
+.topRight{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.soundStatus{
+  font-size:10px;
+  color:#9ca3af;
+  background:#ffffff0a;
+  padding:6px 10px;
+  border-radius:8px;
+  border:1px solid #ffffff10;
+}
+.live{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:8px 14px;
+  border-radius:30px;
+  background:#20d56b15;
+  border:1px solid #20d56b30;
+  font-size:11px;
+  font-weight:800;
+  color:#20d56b;
+}
+.liveDot{
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:#20d56b;
+  box-shadow:0 0 0 4px #20d56b20,0 0 15px #20d56b;
+}
+
+/* MAIN SCROLL AREA */
+.main{
+  flex:1 1 auto;
+  min-height:0;
+  width:100%;
+  padding:22px max(20px, calc((100vw - 1550px)/2 + 20px)) 45px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;
+  scrollbar-color:#3f3f46 transparent;
+}
+.main::-webkit-scrollbar{
+  width:6px;
+}
+.main::-webkit-scrollbar-thumb{
+  background:#3f3f46;
+  border-radius:20px;
+}
+
+/* DASHBOARD TITLE */
+.dashboardTitle{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:15px;
+  margin-bottom:18px;
+}
+.dashboardTitle h1{
+  font-size:26px;
+  font-weight:900;
+  letter-spacing:-.5px;
+  color:#fff;
+}
+.dashboardTitle p{
+  margin-top:4px;
+  font-size:11px;
+  color:#9ca3af;
+}
+.lastSync{
+  font-size:10px;
+  color:#9ca3af;
+  background:#18181b;
+  padding:6px 12px;
+  border-radius:10px;
+  border:1px solid #27272a;
+}
+
+/* STATS GRID */
+.stats{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:14px;
+  width:100%;
+  margin-bottom:20px;
+}
+.stat{
+  position:relative;
+  background:#141416;
+  border-radius:18px;
+  padding:18px;
+  border:1px solid #27272a;
+  box-shadow:0 8px 30px rgba(0,0,0,.3);
+  overflow:hidden;
+  transition:transform .2s ease, border-color .2s ease;
+}
+.stat:hover{
+  transform:translateY(-3px);
+  border-color:#3f3f46;
+}
+.statTop{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.statTitle{
+  font-size:10px;
+  font-weight:900;
+  color:#9ca3af;
+  letter-spacing:1px;
+}
+.statIcon{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:#1f1f23;
+  font-size:16px;
+}
+.statNumber{
+  margin-top:12px;
+  font-size:32px;
+  line-height:1;
+  font-weight:900;
+}
+.stat.new .statNumber{ color:#ff4757; }
+.stat.prep .statNumber{ color:#ffa502; }
+.stat.ready .statNumber{ color:#2ed573; }
+.stat.delivery .statNumber{ color:#1e90ff; }
+.stat.delivered .statNumber{ color:#2ed573; }
+
+/* TOOLBAR */
+.toolbar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px;
+  margin-bottom:20px;
+  background:#141416;
+  border:1px solid #27272a;
+  border-radius:18px;
+  box-shadow:0 8px 30px rgba(0,0,0,.3);
+}
+.searchWrap{
+  position:relative;
+  flex:1 1 auto;
+  min-width:200px;
+}
+.searchIcon{
+  position:absolute;
+  left:14px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:14px;
+  opacity:.5;
+}
+.search{
+  width:100%;
+  height:44px;
+  border:1px solid #27272a;
+  border-radius:12px;
+  padding:0 15px 0 42px;
+  outline:none;
+  background:#1f1f23;
+  color:#fff;
+  font-size:12px;
+  transition:.2s;
+}
+.search:focus{
+  border-color:#ff6500;
+  box-shadow:0 0 0 3px rgba(255,101,0,.2);
+}
+.refresh{
+  height:44px;
+  padding:0 20px;
+  border-radius:12px;
+  background:#ff6500;
+  color:#fff;
+  font-size:11px;
+  font-weight:900;
+  transition:.2s;
+}
+.refresh:hover{
+  background:#ff7b1a;
+}
+.refresh:disabled{
+  opacity:.5;
+}
+
+/* TABS */
+.tabs{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{ display:none; }
+.tab{
+  height:38px;
+  padding:0 16px;
+  border-radius:10px;
+  background:#1f1f23;
+  color:#9ca3af;
+  font-size:10px;
+  font-weight:900;
+  white-space:nowrap;
+  transition:.2s;
+  border:1px solid #27272a;
+}
+.tab:hover{
+  background:#27272a;
+  color:#fff;
+}
+.tab.active{
+  background:#ff6500;
+  color:#fff;
+  border-color:#ff6500;
+  box-shadow:0 4px 15px rgba(255,101,0,.3);
+}
+
+/* ORDERS GRID */
+.orders{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:16px;
+  width:100%;
+  align-items:start;
+}
+.orderCard{
+  position:relative;
+  width:100%;
+  background:#141416;
+  border-radius:20px;
+  border:1px solid #27272a;
+  overflow:hidden;
+  box-shadow:0 10px 35px rgba(0,0,0,.3);
+  transition:transform .2s, box-shadow .2s, border-color .2s;
+}
+.orderCard:hover{
+  transform:translateY(-3px);
+  border-color:#3f3f46;
+  box-shadow:0 15px 45px rgba(0,0,0,.4);
+}
+.orderCard.isNew{
+  border:2px solid #ff4b22;
+  box-shadow:0 10px 35px rgba(255,75,34,.25);
+}
+.newRibbon{
+  position:absolute;
+  top:0;
+  left:0;
+  padding:6px 14px;
+  background:linear-gradient(135deg,#ff4b22,#ff1e00);
+  color:#fff;
+  border-radius:0 0 12px 0;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:1px;
+  z-index:2;
+}
+.orderCard.isNew .orderHead{
+  padding-top:28px;
+}
+
+/* CARD HEAD */
+.orderHead{
+  padding:16px 16px 12px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.orderId{
+  font-size:16px;
+  font-weight:900;
+  color:#fff;
+  word-break:break-word;
+}
+.time{
+  margin-top:4px;
+  font-size:10px;
+  color:#9ca3af;
+}
+.runningTimer{
+  margin-top:4px;
+  font-size:11px;
+  font-weight:900;
+  color:#ff4757;
+}
+.badge{
+  padding:6px 12px;
+  border-radius:20px;
+  background:#ff650020;
+  color:#ff8a00;
+  font-size:9px;
+  font-weight:900;
+  white-space:nowrap;
+  border:1px solid #ff650030;
+}
+.badge.preparing{ background:rgba(255,165,2,0.25); color:#ffeaa7; border-color:rgba(255,165,2,0.4); }
+.badge.ready{ background:rgba(46,213,115,.15); color:#2ed573; border-color:rgba(46,213,115,.3); }
+.badge.delivery{ background:rgba(30,144,255,.15); color:#1e90ff; border-color:rgba(30,144,255,.3); }
+.badge.delivered{ background:rgba(46,213,115,.15); color:#2ed573; border-color:rgba(46,213,115,.3); }
+.badge.cancelled{ background:rgba(255,71,87,.15); color:#ff4757; border-color:rgba(255,71,87,.3); }
+
+/* ITEM BOX */
+.itemBox{
+  margin:0 16px 14px;
+  padding:14px;
+  border-radius:14px;
+  background:#1f1f23;
+  border:1px solid #27272a;
+}
+.itemName{
+  font-size:14px;
+  font-weight:900;
+  color:#fff;
+  line-height:1.3;
+}
+.itemCode{
+  margin-top:4px;
+  font-size:9px;
+  color:#9ca3af;
+}
+.amount{
+  margin-top:10px;
+  font-size:22px;
+  font-weight:900;
+  color:#2ed573;
+}
+.amountLabel{
+  font-size:9px;
+  color:#9ca3af;
+  font-weight:700;
+  letter-spacing:.5px;
+}
+
+/* DETAILS */
+.details{
+  padding:0 16px 14px;
+  display:grid;
+  gap:8px;
+}
+.detail{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  font-size:11px;
+  color:#d1d5db;
+  line-height:1.4;
+}
+.detailIcon{
+  width:20px;
+  text-align:center;
+}
+.detail b{ color:#fff; }
+.detail.address{
+  padding:9px;
+  border-radius:10px;
+  background:#1f1f23;
+  border:1px solid #27272a;
+  overflow-wrap:anywhere;
+}
+
+/* MAP BUTTON */
+.mapButton{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  margin:0 16px 14px;
+  height:38px;
+  border-radius:11px;
+  background:#1e90ff15;
+  color:#1e90ff;
+  font-size:10px;
+  font-weight:900;
+  border:1px solid #1e90ff30;
+  transition:.2s;
+}
+.mapButton:hover{ background:#1e90ff25; }
+.mapButton.disabled{ opacity:.4; pointer-events:none; }
+
+/* PAYMENT ROW */
+.paymentRow{
+  margin:0 16px;
+  padding:12px 0;
+  border-top:1px solid #27272a;
+  border-bottom:1px solid #27272a;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.payment{
+  font-size:10px;
+  font-weight:900;
+  color:#9ca3af;
+}
+.payment strong{
+  display:block;
+  margin-top:2px;
+  font-size:11px;
+  color:#fff;
+}
+.payBtn{
+  min-width:75px;
+  padding:8px 12px;
+  border-radius:10px;
+  background:#27272a;
+  color:#fff;
+  font-size:9px;
+  font-weight:900;
+  transition:.2s;
+}
+.payBtn.paid{ background:#2ed573; color:#000; }
+.payBtn.pending{ background:#ffa502; color:#000; }
+
+/* ACTIONS */
+.actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  padding:14px 16px 16px;
+}
+.action{
+  min-height:42px;
+  padding:0 8px;
+  border-radius:11px;
+  background:#1f1f23;
+  color:#fff;
+  font-size:9px;
+  font-weight:900;
+  border:1px solid #27272a;
+  transition:.2s;
+}
+.action:hover{ background:#27272a; transform:translateY(-1px); }
+.action.primary{
+  background:linear-gradient(135deg,#ff7b00,#ff3f00);
+  border:0;
+  box-shadow:0 5px 15px rgba(255,91,0,.3);
+}
+.action.dark{ background:#27272a; }
+.action:disabled{ opacity:.5; transform:none; }
+
+.riderInfo{
+  margin:0 16px 14px;
+  padding:10px 12px;
+  border-radius:11px;
+  background:#1e90ff15;
+  color:#1e90ff;
+  font-size:9px;
+  font-weight:800;
+  border:1px solid #1e90ff30;
+  text-align:center;
+}
+
+/* EMPTY STATE */
+.empty{
+  grid-column:1/-1;
+  min-height:280px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  background:#141416;
+  border-radius:20px;
+  border:1px solid #27272a;
+  color:#9ca3af;
+}
+.emptyIcon{ font-size:45px; margin-bottom:10px; }
+.empty b{ font-size:15px; color:#fff; }
+.empty p{ margin-top:6px; font-size:10px; }
+
+/* POPUP OVERLAY */
+.overlay{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100dvh;
+  z-index:5000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:15px;
+  background:rgba(0,0,0,.7);
+  backdrop-filter:blur(8px);
+}
+.overlay.show{ display:flex; }
+.popup{
+  width:min(650px, 100%);
+  max-height:calc(100dvh-30px);
+  overflow-y:auto;
+  padding:22px;
+  background:#141416;
+  border:1px solid #27272a;
+  border-radius:24px;
+  box-shadow:0 30px 100px rgba(0,0,0,.6);
+}
+.popupHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  margin-bottom:18px;
+}
+.popupHead h2{ font-size:20px; font-weight:900; color:#fff; }
+.popupStatus{ display:block; margin-top:4px; color:#ff6500; font-size:10px; font-weight:900; }
+.close{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background:#1f1f23;
+  color:#fff;
+  font-size:18px;
+  border:1px solid #27272a;
+}
+.popupGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.popupItem{
+  padding:12px;
+  border-radius:12px;
+  background:#1f1f23;
+  border:1px solid #27272a;
+}
+.popupItem span{ display:block; margin-bottom:4px; font-size:9px; color:#9ca3af; font-weight:700; }
+.popupItem b{ display:block; font-size:12px; color:#fff; word-break:break-word; }
+.fullRow{ grid-column:1/-1; }
+.popupButtons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:14px;
+}
+.popupButton{
+  height:46px;
+  border-radius:12px;
+  font-size:10px;
+  font-weight:900;
+}
+.popupButton.whatsapp{ background:#2ed573; color:#000; }
+.popupButton.maps{ background:#1e90ff; color:#fff; }
+
+/* ALERT BAR */
+.alertBar{
+  position:fixed;
+  left:50%;
+  top:85px;
+  transform:translate(-50%,-20px);
+  z-index:4000;
+  width:min(430px, calc(100% - 24px));
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  border-radius:16px;
+  background:#1f1f23;
+  color:#fff;
+  border:1px solid #ff4b22;
+  box-shadow:0 15px 45px rgba(0,0,0,.5);
+  opacity:0;
+  pointer-events:none;
+  transition:.25s;
+}
+.alertBar.show{
+  opacity:1;
+  transform:translate(-50%,0);
+}
+.alertBell{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:12px;
+  background:#ff4b22;
+  font-size:18px;
+  animation:ring 1s infinite;
+}
+@keyframes ring{
+  0%,100%{ transform:rotate(0); }
+  25%{ transform:rotate(-10deg); }
+  75%{ transform:rotate(10deg); }
+}
+.alertText strong{ display:block; font-size:11px; }
+.alertText span{ display:block; margin-top:2px; font-size:9px; color:#9ca3af; }
+
+/* RESPONSIVE QUERIES */
+@media(max-width:1100px){
+  .stats{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .orders{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:620px){
+  .topbar{ flex-basis:62px; height:62px; padding:0 12px; }
+  .stats{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .orders{ grid-template-columns:1fr; }
+  .toolbar{ flex-wrap:wrap; }
+  .searchWrap{ flex:1 1 100%; }
+  .tabs{ width:100%; order:3; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo"> wok </div>
+      <div class="brandText">
+        <strong>LE WOK</strong>
+        <span>RESTAURANT CONTROL</span>
+      </div>
+    </div>
+    <div class="topRight">
+      <div class="soundStatus" id="soundStatus">ALERT READY</div>
+      <div class="live">
+        <span class="liveDot"></span>
+        LIVE
+      </div>
+    </div>
+  </header>
+
+<!-- Yeh raha simple button -->
+<button onclick="checkClick()" style="background:#e23744; color:white; padding:14px 28px; font-size:16px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">
+  🔔 Test Button (Click Me)
+</button>
+
+<script>
+async function checkClick() {
+    try {
+      alert("Step 1: Permission mang rahe hain...");
+      
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        alert("Step 2: Permission mil gayi! Service worker check kar rahe hain...");
+        
+        // Service worker ready hone ka wait karein
+        const swReg = await navigator.serviceWorker.ready;
+        alert("Service worker ready hai, ab token le rahe hain...");
+
+        const token = await messaging.getToken({ 
+          vapidKey: 'BORkqpQI200CAz_fd8H7i4NW64rkzHrF7_uNCwp1KRNbM7qXGtkPO-QqwubJjx7xEzqbjaFZyE90-fsq1XCNhI0',
+          serviceWorkerRegistration: swReg
+        });
+        
+        if (token) {
+          alert("Step 3: Token mil gaya! Google Sheet me bhej rahe hain...");
+          console.log("Device Token:", token);
+          sendTokenToServer(token);
+        } else {
+          alert("Token khali (empty) aaya!");
+        }
+      } else {
+        alert("Aapne notification permission deny kar di!");
+      }
+    } catch (err) {
+      alert("Error aa gaya: " + err.message);
+      console.error("Detailed Error:", err);
+    }
+  }
+  // Service Worker Register with strict logging
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('https://lewokchembur-cloud.github.io/lewok-push/firebase-messaging-sw.js')
+      .then((registration) => {
+        console.log('Service Worker registered with scope:', registration.scope);
+      })
+      .catch((err) => {
+        console.error('Service Worker registration failed:', err);
+        alert("SW Register Error: " + err);
+      });
+  }
+</script>
+  <!-- MAIN -->
+  <main class="main">
+    <div class="dashboardTitle">
+      <div>
+        <h1>Orders</h1>
+        <p>Live restaurant order control &amp; management</p>
+      </div>
+      <div class="lastSync" id="lastSync">Last sync: --:--:--</div>
+    </div>
+
+    <!-- STATS -->
+    <section class="stats">
+      <div class="stat new">
+        <div class="statTop">
+          <span class="statTitle">NEW</span>
+          <span class="statIcon">📥</span>
+        </div>
+        <div class="statNumber" id="newCount">0</div>
+      </div>
+      <div class="stat prep">
+        <div class="statTop">
+          <span class="statTitle">PREPARING</span>
+          <span class="statIcon">👨‍🍳</span>
+        </div>
+        <div class="statNumber" id="preparingCount">0</div>
+      </div>
+      <div class="stat ready">
+        <div class="statTop">
+          <span class="statTitle">READY</span>
+          <span class="statIcon">📦</span>
+        </div>
+        <div class="statNumber" id="readyCount">0</div>
+      </div>
+      <div class="stat delivery">
+        <div class="statTop">
+          <span class="statTitle">DELIVERY</span>
+          <span class="statIcon">🚀</span>
+        </div>
+        <div class="statNumber" id="deliveryCount">0</div>
+      </div>
+      <div class="stat delivered">
+        <div class="statTop">
+          <span class="statTitle">DELIVERED</span>
+          <span class="statIcon">✅</span>
+        </div>
+        <div class="statNumber" id="deliveredCount">0</div>
+      </div>
+      
+    </section>
+
+    <!-- TOOLBAR -->
+    <section class="toolbar">
+      <div class="searchWrap">
+        <span class="searchIcon">🔍</span>
+        <input class="search" id="search" placeholder="Search Order ID / Item / Details..." />
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="setFilter('ALL',this)">ALL</button>
+        <button class="tab" onclick="setFilter('ORDER RECEIVED',this)">NEW</button>
+        <button class="tab" onclick="setFilter('PREPARING',this)">PREPARING</button>
+        <button class="tab" onclick="setFilter('READY',this)">READY</button>
+        <button class="tab" onclick="setFilter('OUT FOR DELIVERY',this)">DELIVERY</button>
+        <button class="tab" onclick="setFilter('DELIVERED',this)">DELIVERED</button>
+      </div>
+      <button class="refresh" id="refreshBtn" onclick="loadOrders(true)">Refresh</button>
+    </section>
+
+    <!-- ORDERS GRID -->
+    <section class="orders" id="orders"></section>
+  </main>
+
+  <!-- POPUP -->
+  <div class="overlay" id="overlay" onclick="closePopup(event)">
+    <div class="popup" onclick="event.stopPropagation()">
+      <div class="popupHead">
+        <div>
+          <h2>Order Details</h2>
+          <small class="popupStatus" id="popupStatus"></small>
+        </div>
+        <button class="close" onclick="closePopup()">×</button>
+      </div>
+      <div class="popupGrid" id="popupContent"></div>
+      <div class="popupButtons">
+        <button class="popupButton whatsapp" id="popupWhatsApp">WHATSAPP</button>
+        <button class="popupButton maps" id="popupMaps">OPEN MAP</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* CONFIG & SETTINGS */
+const API_URL = "https://script.google.com/macros/s/AKfycbw3CEHz01M2Vw5S9bxGTq0RAyj7D7DX7WiHNzhYsPJG5ySsPFdCfo75UraNYvwUkr29-w/exec";
+
+const PRINTER_CONFIG = {
+  autoPrint: true,
+  restaurantName: "LE WOK",
+  restaurantTagline: "Chinese Restaurant",
+  address: "Dr. C. G Road, Above The Urban Shawarma, Jai Hind Market, Chembur Camp, Mumbai - 400024",
+  phone: "8291901011",
+  // 1. Yahan apna Google Review ka direct link daalein (jaise maps.app.goo.gl/... ya g.page/...)
+  qrRateUs: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent("https://search.google.com/local/writereview?placeid=ChIJnzxYU5bJ5zsRHmneIDYBJSI&source=g.page.m.dc._&laa=gpay-review-qr-tab-downloaded-card"),
+  
+  // 2. Yahan apna online ordering menu ya Blogger website ka link daalein
+  qrMoreOrders: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent("https://lewokfoodorder.blogspot.com/p/le-wok-food-order.html")
+};
+
+// Inline Service Worker setup for background sound & native notification
+if ('serviceWorker' in navigator) {
+    const swCode = `
+        self.addEventListener('install', (e) => { self.skipWaiting(); });
+        self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
+        self.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'PLAY_ALERT') {
+                self.registration.showNotification(event.data.title || "🚨 LE WOK NEW ORDER!", {
+                    body: event.data.text || "Naya food order aaya hai!",
+                    icon: "https://cdn-icons-png.flaticon.com/512/3176/3176346.png",
+                    vibrate: [300, 100, 300, 100, 300],
+                    tag: 'le-wok-kitchen-alert',
+                    renotify: true,
+                    requireInteraction: true
+                });
+            }
+        });
+    `;
+    const swBlob = new Blob([swCode], { type: 'text/javascript' });
+    const swUrl = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl).then(reg => {
+        if (Notification.permission !== 'granted') {
+            Notification.requestPermission();
+        }
+    }).catch(err => console.log("SW error:", err));
+}
+
+let orders = [];
+let filter = "ALL";
+let lastOrderIds = new Set();
+let firstLoad = true;
+let alertTimer = null;
+let alerting = false;
+let audioCtx = null;
+let audioUnlocked = false;
+
+function unlockAudio(){
+  try{
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if(audioCtx.state === "suspended"){
+      audioCtx.resume();
+    }
+    audioUnlocked = true;
+    document.getElementById("soundStatus").textContent = "SOUND ON";
+  }catch(e){}
+}
+document.addEventListener("click", unlockAudio, {once:false});
+document.addEventListener("touchstart", unlockAudio, {once:false});
+
+function playAlertTone(){
+  if(!audioUnlocked) return;
+  try{
+    const now = audioCtx.currentTime;
+    function bell(start, freq, volume=0.7){
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(volume, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.3);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + 0.32);
+    }
+    bell(now, 980, 0.7);
+    bell(now + 0.16, 1220, 0.7);
+    bell(now + 0.52, 980, 0.7);
+    bell(now + 0.68, 1220, 0.7);
+  }catch(e){}
+}
+
+function playAlertSound() {
+    try {
+        let audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.play().catch(e => console.log("Audio autoplay restricted by browser"));
+    } catch(err) {}
+}
+
+function triggerBackgroundNotification(title, bodyText) {
+    playAlertSound(); 
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ 
+            type: 'PLAY_ALERT', 
+            title: title, 
+            text: bodyText 
+        });
+    }
+}
+
+function startNewOrderAlert(newOrders){
+  if(!newOrders.length || alerting) return;
+  alerting = true;
+  const count = newOrders.length;
+  document.getElementById("alertMessage").textContent = count + (count === 1 ? " new order waiting." : " new orders waiting.");
+  document.getElementById("alertBar").classList.add("show");
+  playAlertTone();
+  triggerBackgroundNotification("🚨 LE WOK: NEW ORDER!", count + " naya food order receive hua hai! Kitchen check karein.");
+  alertTimer = setInterval(() => {
+    if(!hasPendingNewOrders()){
+      stopNewOrderAlert();
+      return;
+    }
+    playAlertTone();
+  }, 3000);
+}
+
+function stopNewOrderAlert(){
+  alerting = false;
+  if(alertTimer) clearInterval(alertTimer);
+  alertTimer = null;
+  document.getElementById("alertBar").classList.remove("show");
+}
+
+function hasPendingNewOrders(){
+  return orders.some(x => normalizeStatus(x.orderStatus) === "ORDER RECEIVED");
+}
+
+async function loadOrders(manual=false){
+  const btn = document.getElementById("refreshBtn");
+  if(manual){
+    btn.disabled = true;
+    btn.textContent = "Loading...";
+  }
+  try{
+    const response = await fetch(API_URL + "?action=GET_ORDERS&ts=" + Date.now(), {cache:"no-store"});
+    const data = await response.json();
+    if(!data.ok) throw new Error(data.error || "Failed to load");
+
+    const incoming = data.orders || [];
+    const incomingIds = new Set(incoming.map(x => String(x.orderId || "")));
+    const newlyArrived = !firstLoad ? incoming.filter(x => !lastOrderIds.has(String(x.orderId || ""))) : [];
+
+    if(newlyArrived.some(x => normalizeStatus(x.orderStatus) === "ORDER RECEIVED")){
+      startNewOrderAlert(newlyArrived.filter(x => normalizeStatus(x.orderStatus) === "ORDER RECEIVED"));
+    }
+
+    orders = incoming;
+    lastOrderIds = incomingIds;
+    firstLoad = false;
+
+    if(!hasPendingNewOrders()) stopNewOrderAlert();
+
+    renderStats();
+    renderOrders();
+    updateSync();
+  }catch(err){
+    console.error("Load error:", err);
+  }finally{
+    if(manual){
+      btn.disabled = false;
+      btn.textContent = "Refresh";
+    }
+  }
+}
+
+function updateSync(){
+  const now = new Date();
+  document.getElementById("lastSync").textContent = "Last sync: " + now.toLocaleTimeString("en-IN", {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+}
+
+function renderStats(){
+  const status = orders.map(x => normalizeStatus(x.orderStatus));
+  document.getElementById("newCount").textContent = status.filter(x => x === "ORDER RECEIVED").length;
+  document.getElementById("preparingCount").textContent = status.filter(x => x === "PREPARING").length;
+  document.getElementById("readyCount").textContent = status.filter(x => x === "READY").length;
+  document.getElementById("deliveryCount").textContent = status.filter(x => x === "OUT FOR DELIVERY").length;
+  document.getElementById("deliveredCount").textContent = status.filter(x => x === "DELIVERED").length;
+}
+
+function renderOrders(){
+  const box = document.getElementById("orders");
+  const search = document.getElementById("search").value.toLowerCase().trim();
+  
+  const list = orders.filter(order => {
+    const status = normalizeStatus(order.orderStatus);
+    const matchesFilter = filter === "ALL" || status === filter;
+    const text = [order.orderId, order.customerNumber, order.itemName, order.address, order.itemCode].join(" ").toLowerCase();
+    return matchesFilter && (!search || text.includes(search));
+  });
+
+  if(!list.length){
+    box.innerHTML = `
+      <div class="empty">
+        <div class="emptyIcon">📭</div>
+        <b>No Orders Found</b>
+        <p>New incoming orders will appear here automatically.</p>
+      </div>`;
+    return;
+  }
+
+  box.innerHTML = list.map(order => orderCard(order)).join("");
+}
+
+function orderCard(o){
+  const status = normalizeStatus(o.orderStatus);
+  const payment = normalizePayment(o.paymentMethod);
+  const isNew = status === "ORDER RECEIVED";
+  const mapAvailable = hasLocation(o);
+  let actionHTML = "";
+
+  if(status === "ORDER RECEIVED"){
+    actionHTML = `<button class="action primary" onclick="updateStatus('${safe(o.orderId)}','PREPARING',this)">⚡ ACCEPT / PREP</button>`;
+  } else if(status === "PREPARING"){
+    actionHTML = `<button class="action primary" onclick="updateStatus('${safe(o.orderId)}','READY',this)">✔ MARK READY</button>`;
+  } else if(status === "READY"){
+    actionHTML = `<div class="riderInfo">📦 WAITING FOR RIDER</div>`;
+  } else if(status === "OUT FOR DELIVERY"){
+    actionHTML = `<div class="riderInfo">🚀 RIDER OUT FOR DELIVERY</div>`;
+  } else if(status === "DELIVERED"){
+    actionHTML = `<div class="riderInfo">✅ ORDER COMPLETED</div>`;
+  }
+
+  return `
+    <article class="orderCard ${isNew ? 'isNew' : ''}">
+      ${isNew ? '<div class="newRibbon">NEW ORDER</div>' : ''}
+      <div class="orderHead">
+        <div>
+          <div class="orderId">${esc(o.orderId || "ORDER")}</div>
+          <div class="time">${esc(o.date || "")} &nbsp; ${esc(o.time || "")}</div>
+          ${isNew ? `<div class="runningTimer" data-timer="${safe(o.date)} ${safe(o.time)}">00:00</div>` : ''}
+        </div>
+        <span class="badge ${statusClass(status)}">${esc(status)}</span>
+      </div>
+      <div class="itemBox">
+        <div class="itemName">${esc(o.itemName || "Order")}</div>
+        <div class="itemCode">Code: ${esc(o.itemCode || "-")}</div>
+        <div class="amount">₹${money(o.finalAmount)}</div>
+        <div class="amountLabel">TOTAL AMOUNT</div>
+      </div>
+      <div class="details">
+        <div class="detail"><span class="detailIcon">📞</span><b>${esc(o.customerNumber || "-")}</b></div>
+        <div class="detail address"><span class="detailIcon">📍</span><span>${esc(o.address || "-")}</span></div>
+        <div class="detail"><span class="detailIcon">📏</span><span><b>${money(o.distanceKm)} KM</b> delivery distance</span></div>
+      </div>
+      <button class="mapButton ${mapAvailable ? '' : 'disabled'}" onclick="openMap('${safe(o.orderId)}')">🗺 OPEN GOOGLE MAPS</button>
+      <div class="paymentRow">
+        <div class="payment">PAYMENT<strong>${esc(payment)}</strong></div>
+        <button class="payBtn ${paymentClass(payment)}" onclick="changePayment('${safe(o.orderId)}',this)">UPDATE</button>
+      </div>
+      <div class="actions">
+        <button class="action dark" onclick="viewOrder('${safe(o.orderId)}')">VIEW</button>
+        <button class="action dark" onclick="sendWhatsApp('${safe(o.orderId)}')">WHATSAPP</button>
+        <button class="action" onclick="printExistingOrder('${safe(o.orderId)}')">🖨 PRINT</button>
+        ${actionHTML}
+      </div>
+    </article>`;
+}
+
+async function updateStatus(orderId, newStatus, button){
+  if(!button || button.disabled) return;
+  if(newStatus === "PREPARING") stopNewOrderAlert();
+  const oldText = button.textContent;
+  button.disabled = true;
+  button.classList.add("processing");
+  button.textContent = "Updating...";
+  try{
+    const result = await postUpdate({action:"UPDATE_ORDER", orderId: orderId, orderStatus: newStatus});
+    if(!result.ok) throw new Error(result.error || "Update failed");
+    const order = orders.find(x => String(x.orderId) === String(orderId));
+    if(order) order.orderStatus = newStatus;
+    renderStats();
+    renderOrders();
+    setTimeout(() => loadOrders(false), 700);
+  }catch(err){
+    alert("Update failed:\n" + err.message);
+    button.disabled = false;
+    button.classList.remove("processing");
+    button.textContent = oldText;
+  }
+}
+
+async function changePayment(orderId, button){
+  const order = orders.find(x => String(x.orderId) === String(orderId));
+  if(!order) return;
+  const current = normalizePayment(order.paymentMethod);
+  let next = current === "CASH ON DELIVERY" ? "PENDING" : (current === "PENDING" ? "PAID" : "CASH ON DELIVERY");
+  try{
+    const result = await postUpdate({action:"UPDATE_ORDER", orderId: orderId, paymentMethod: next});
+    if(!result.ok) throw new Error(result.error || "Payment update failed");
+    order.paymentMethod = next;
+    renderOrders();
+  }catch(err){
+    alert("Payment update failed:\n" + err.message);
+  }
+}
+
+async function postUpdate(payload){
+  const response = await fetch(API_URL, {
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify(payload)
+  });
+  return await response.json();
+}
+
+function viewOrder(orderId){
+  const o = orders.find(x => String(x.orderId) === String(orderId));
+  if(!o) return;
+  document.getElementById("popupStatus").textContent = normalizeStatus(o.orderStatus);
+  document.getElementById("popupContent").innerHTML = `
+    ${popup("ORDER ID", o.orderId)}
+    ${popup("DATE & TIME", (o.date || "") + " " + (o.time || ""))}
+    ${popup("CUSTOMER NUMBER", o.customerNumber)}
+    ${popup("ITEM", o.itemName)}
+    ${popup("ITEM CODE", o.itemCode)}
+    ${popup("FOOD AMOUNT", "₹" + money(o.foodAmount))}
+    ${popup("DELIVERY CHARGE", "₹" + money(o.deliveryCharge))}
+    ${popup("FINAL TOTAL", "₹" + money(o.finalAmount))}
+    ${popup("PAYMENT METHOD", o.paymentMethod)}
+    ${popup("DISTANCE", money(o.distanceKm) + " KM")}
+    ${popup("ADDRESS", o.address, "fullRow")}
+  `;
+  document.getElementById("popupWhatsApp").onclick = () => sendWhatsApp(o.orderId);
+  document.getElementById("popupMaps").onclick = () => openMap(o.orderId);
+  document.getElementById("overlay").classList.add("show");
+}
+
+function popup(title, value, cls=""){
+  return `<div class="popupItem ${cls}"><span>${esc(title)}</span><b>${esc(value || "-")}</b></div>`;
+}
+
+function closePopup(e){
+  if(e && e.target !== document.getElementById("overlay")) return;
+  document.getElementById("overlay").classList.remove("show");
+}
+
+function openMap(orderId){
+  const o = orders.find(x => String(x.orderId) === String(orderId));
+  if(!o) return;
+  let url = o.latitude && o.longitude ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.latitude + "," + o.longitude)}` : o.location;
+  if(!url){ alert("Location unavailable."); return; }
+  window.open(url, "_blank");
+}
+
+function sendWhatsApp(orderId){
+  const o = orders.find(x => String(x.orderId) === String(orderId));
+  if(!o) return;
+  const msg = `*LE WOK - ORDER*\nOrder ID: ${o.orderId}\nItem: ${o.itemName}\nTotal: ₹${money(o.finalAmount)}\nPayment: ${o.paymentMethod}\nAddress: ${o.address}`;
+  const phone = String(o.customerNumber || "").replace(/\D/g,"");
+  if(!phone){ alert("Customer phone number unavailable."); return; }
+  window.open("https://wa.me/91" + phone + "?text=" + encodeURIComponent(msg), "_blank");
+}
+
+function printOrderReceipt(o){
+  if(!PRINTER_CONFIG.autoPrint) return;
+  const receiptWindow = window.open("", "_blank", "width=400,height=700");
+  if(!receiptWindow) return;
+
+  const orderId = esc(o.orderId || "-");
+  const item = esc(o.itemName || "Order");
+  const itemCode = esc(o.itemCode || "-");
+  const foodAmount = money(o.foodAmount);
+  const delivery = money(o.deliveryCharge);
+  const total = money(o.finalAmount);
+  const payment = esc(o.paymentMethod || "Cash on Delivery");
+  const formattedDateTime = esc(formatReceiptDate(o.date, o.time));
+  const address = esc(o.address || "-");
+
+  receiptWindow.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>LE WOK - ${orderId}</title>
+<style>
+  @page { size: 58mm auto; margin: 0; }
+  *{ box-sizing: border-box; }
+  body {
+    margin: 0; padding: 4mm; width: 58mm; background: #fff; color: #000;
+    font-family: Arial, Helvetica, sans-serif; font-size: 11px;
+  }
+  .center { text-align: center; }
+  .restaurant { font-size: 18px; font-weight: 900; letter-spacing: 1px; }
+  .tagline { font-size: 9px; margin-top: 2px; }
+  .address-txt { font-size: 8px; line-height: 1.2; margin-top: 3px; }
+  .line { border-top: 1px dashed #000; margin: 6px 0; }
+  .orderTitle { font-size: 14px; font-weight: 900; text-align: center; margin: 4px 0; }
+  .row { display: flex; justify-content: space-between; gap: 6px; margin: 3px 0; }
+  .label { font-weight: 700; }
+  .itemName { font-size: 12px; font-weight: 900; margin-top: 5px; }
+  .itemCode { font-size: 8px; color: #444; }
+  .totalBox { margin-top: 6px; padding-top: 5px; border-top: 2px solid #000; }
+  .total { font-size: 16px; font-weight: 900; }
+  .qrSection { margin-top: 8px; display: flex; justify-content: space-around; gap: 4px; text-align: center; }
+  .qrBox { width: 48%; }
+  .qrBox img { width: 22mm; height: 22mm; display: block; margin: 0 auto; }
+  .qrBox span { font-size: 7px; font-weight: 700; display: block; margin-top: 2px; }
+  .thanks { margin-top: 10px; text-align: center; font-size: 10px; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="center">
+    <div class="restaurant">${PRINTER_CONFIG.restaurantName}</div>
+    <div class="tagline">${PRINTER_CONFIG.restaurantTagline}</div>
+    <div class="address-txt">${PRINTER_CONFIG.address}</div>
+    <div class="address-txt">Tel: ${PRINTER_CONFIG.phone}</div>
+  </div>
+  
+  <div class="line"></div>
+  <div class="orderTitle">bill</div>
+  <div class="line"></div>
+
+  <div class="row"><span class="label">Order ID:</span><span>${orderId}</span></div>
+  <div class="row"><span class="label">Date/Time:</span><span>${formattedDateTime}</span></div>
+
+  <div class="line"></div>
+  
+  <div class="itemName">${item}</div>
+  <div class="itemCode">Code: ${itemCode}</div>
+
+  <div class="line"></div>
+
+  <div class="row"><span>Food Amt</span><span>₹${foodAmount}</span></div>
+  <div class="row"><span>Delivery</span><span>₹${delivery}</span></div>
+  
+  <div class="totalBox">
+    <div class="row">
+      <span class="total">TOTAL</span>
+      <span class="total">₹${total}</span>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:6px;"><span class="label">Payment:</span><span>${payment}</span></div>
+
+  <div class="line"></div>
+  <div>
+    <span class="label" style="font-size:9px; font-weight:700;">DELIVERY ADDRESS:</span>
+    <div style="font-size:9px; margin-top:2px; font-weight:bold;">${address}</div>
+  </div>
+
+  <div class="line"></div>
+
+  <div class="qrSection">
+    <div class="qrBox">
+      <img src="${PRINTER_CONFIG.qrRateUs}" alt="Rate Us QR">
+      <span>⭐ RATE US</span>
+    </div>
+    <div class="qrBox">
+      <img src="${PRINTER_CONFIG.qrMoreOrders}" alt="Online Menu QR">
+      <span>📱 SCAN & ONLINE ORDER </span>
+    </div>
+  </div>
+
+  <div class="thanks">
+    THANK YOU FOR ORDERING!<br>
+    <span style="font-size:8px; font-weight:normal;">LE WOK — Chinese Restaurant</span>
+  </div>
+</body>
+</html>
+  `);
+  receiptWindow.document.close();
+  receiptWindow.focus();
+  setTimeout(() => {
+    receiptWindow.print();
+    setTimeout(() => { receiptWindow.close(); }, 1000);
+  }, 500);
+}
+
+function printExistingOrder(orderId){
+  const order = orders.find(o => String(o.orderId || "") === String(orderId));
+  if(!order){ alert("Order not found."); return; }
+  printOrderReceipt(order);
+}
+
+function setFilter(value, el){
+  filter = value;
+  document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+  el.classList.add("active");
+  renderOrders();
+}
+
+document.getElementById("search").addEventListener("input", renderOrders);
+
+function normalizeStatus(s){ return String(s || "ORDER RECEIVED").trim().toUpperCase(); }
+function normalizePayment(p){
+  const x = String(p || "Cash on Delivery").trim().toUpperCase();
+  if(x === "PAID") return "PAID";
+  if(x === "PENDING") return "PENDING";
+  return "CASH ON DELIVERY";
+}
+
+function statusClass(s){
+  if(s === "PREPARING") return "preparing";
+  if(s === "READY") return "ready";
+  if(s === "OUT FOR DELIVERY") return "delivery";
+  if(s === "DELIVERED") return "delivered";
+  if(s === "CANCELLED") return "cancelled";
+  return "";
+}
+
+function paymentClass(p){
+  if(p === "PAID") return "paid";
+  if(p === "PENDING") return "pending";
+  return "";
+}
+
+function money(v){
+  const n = Number(v || 0);
+  return isNaN(n) ? "0" : n.toLocaleString("en-IN");
+}
+
+function hasLocation(o){ return !!((o.latitude && o.longitude) || o.location); }
+
+function esc(v){
+  return String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function safe(v){ return String(v || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'"); }
+
+function parseOrderDate(date, time){
+  if(!date && !time) return null;
+  let d = new Date(String(date || "") + " " + String(time || ""));
+  if(!isNaN(d.getTime())) return d;
+  const match = String(date || "").match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if(match){
+    const day = Number(match[1]), month = Number(match[2]) - 1, year = Number(match[3]);
+    let hours = 0, minutes = 0, seconds = 0;
+    const tm = String(time || "").match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?/i);
+    if(tm){
+      hours = Number(tm[1]); minutes = Number(tm[2]); seconds = Number(tm[3] || 0);
+      const ampm = String(tm[4] || "").toUpperCase();
+      if(ampm === "PM" && hours < 12) hours += 12;
+      if(ampm === "AM" && hours === 12) hours = 0;
+    }
+    d = new Date(year, month, day, hours, minutes, seconds);
+    if(!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+function updateTimers(){
+  document.querySelectorAll("[data-timer]").forEach(el => {
+    const value = el.getAttribute("data-timer") || "";
+    const parts = value.split(" ");
+    const date = parts.shift() || "", time = parts.join(" ") || "";
+    const created = parseOrderDate(date, time);
+    if(!created){ el.textContent = "⏱ LIVE"; return; }
+    const seconds = Math.max(0, Math.floor((Date.now() - created.getTime()) / 1000));
+    const h = Math.floor(seconds / 3600), m = Math.floor((seconds % 3600) / 60), s = seconds % 60;
+    el.textContent = "⏱ " + String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+  });
+}
+
+/* STARTUP */
+loadOrders();
+setInterval(() => loadOrders(false), 5000);
+setInterval(updateTimers, 1000);
+updateTimers();
+
+function formatReceiptDate(dateStr, timeStr) {
+  let combined = String(dateStr || "").trim();
+  if (timeStr && !combined.includes("T") && !combined.includes(" ")) {
+    combined += " " + String(timeStr).trim();
+  }
+
+  let d = new Date(dateStr);
+  if (isNaN(d.getTime()) && timeStr) {
+    d = new Date(timeStr);
+  }
+
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true
+    });
+  }
+
+  let cleanDate = String(dateStr || "").split("T")[0];
+  let cleanTime = String(timeStr || "").split("T")[1] ? String(timeStr).split("T")[1].replace("Z", "") : "";
+  if(cleanDate.startsWith("1899")) cleanDate = "Today";
+  
+  return `${cleanDate} ${cleanTime}`.trim() || "--";
+}
+</script>
+</body>
+</html>
